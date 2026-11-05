@@ -24,7 +24,7 @@ fail=0
 for m in "${MUTANTS[@]}"; do
   D=$(mktemp -d); mkdir -p "$D/linux"; sed "$m" "$SRC" > "$D/linux/io_uring.py"
   if cmp -s "$SRC" "$D/linux/io_uring.py"; then echo "NOT APPLIED  $m"; fail=1; continue; fi
-  if PLUGINS="$D" "$PY" -m pytest -q -x "$ROOT/tests/test_plugins.py" >"$D/log" 2>&1; then
+  if PLUGINS="$D" "$PY" -m pytest -q -x "$ROOT/tests" >"$D/log" 2>&1; then
     echo "SURVIVED     $m"; fail=1
   else
     echo "KILLED       $m  ($(grep -m1 -oE 'FAILED [^ ]+|[0-9]+ failed' "$D/log"))"

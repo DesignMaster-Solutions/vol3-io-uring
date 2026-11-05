@@ -1,0 +1,92 @@
+GUEST_BOOTED 6.12.115+deb13.1-cloud-amd64
+TRUTH {"kind":"listener","pid":137,"port":4444}
+TRUTH {"kind":"ring","pid":141,"fd":3,"flags":0,"sq_entries":8,"cq_entries":16}
+TRUTH {"kind":"ring","pid":139,"fd":3,"flags":0,"sq_entries":8,"cq_entries":16}
+TRUTH {"kind":"ring","pid":140,"fd":4,"flags":2,"sq_entries":4,"cq_entries":8}
+TRUTH {"kind":"sqe","pid":140,"fd":4,"slot":0,"opcode":0,"flags":0,"sqe_fd":0,"len":0,"user_data":8193,"personality":0,"buf_index":0}
+TRUTH {"kind":"cqe","pid":140,"fd":4,"index":0,"user_data":8193,"res":0,"flags":0}
+TRUTH {"kind":"sqe","pid":139,"fd":3,"slot":0,"opcode":18,"flags":0,"sqe_fd":-100,"len":0,"user_data":4097,"personality":0,"buf_index":0}
+TRUTH {"kind":"cqe","pid":139,"fd":3,"index":0,"user_data":4097,"res":4,"flags":0}
+TRUTH {"kind":"sqe","pid":139,"fd":3,"slot":1,"opcode":22,"flags":0,"sqe_fd":4,"len":64,"user_data":4098,"personality":0,"buf_index":0}
+TRUTH {"kind":"cqe","pid":139,"fd":3,"index":1,"user_data":4098,"res":38,"flags":0}
+TRUTH {"kind":"sqe","pid":139,"fd":3,"slot":2,"opcode":45,"flags":0,"sqe_fd":2,"len":0,"user_data":4099,"personality":0,"buf_index":0}
+TRUTH {"kind":"sqe","pid":140,"fd":4,"slot":1,"opcode":23,"flags":0,"sqe_fd":3,"len":29,"user_data":8194,"personality":0,"buf_index":0}
+TRUTH {"kind":"cqe","pid":140,"fd":4,"index":1,"user_data":8194,"res":29,"flags":0}
+TRUTH {"kind":"cqe","pid":139,"fd":3,"index":2,"user_data":4099,"res":5,"flags":0}
+TRUTH {"kind":"sqe","pid":140,"fd":4,"slot":2,"opcode":0,"flags":0,"sqe_fd":0,"len":0,"user_data":8195,"personality":0,"buf_index":0}
+TRUTH {"kind":"cqe","pid":140,"fd":4,"index":2,"user_data":8195,"res":0,"flags":0}
+TRUTH {"kind":"sqe","pid":139,"fd":3,"slot":3,"opcode":16,"flags":0,"sqe_fd":5,"len":0,"user_data":4100,"personality":0,"buf_index":0}
+TRUTH {"kind":"cqe","pid":139,"fd":3,"index":3,"user_data":4100,"res":0,"flags":0}
+TRUTH {"kind":"files","pid":140,"opened_fd":3,"path":"/data/sqpoll.log"}
+TRUTH {"kind":"registered","pid":141,"fd":3,"files":["/data/registered.txt","socket"],"file_fds":[4,5],"bufs":[[4259840,4096],[4251648,8192]],"personality":1,"personality_uid":0}
+TRUTH {"kind":"sqe","pid":139,"fd":3,"slot":4,"opcode":26,"flags":0,"sqe_fd":5,"len":20,"user_data":4101,"personality":0,"buf_index":0}
+TRUTH {"kind":"cqe","pid":139,"fd":3,"index":4,"user_data":4101,"res":20,"flags":0}
+TRUTH {"kind":"files","pid":139,"opened_fd":4,"path":"/data/report.txt","socket_fd":5}
+TRUTH {"kind":"sqpoll","pid":140,"tid":143,"comm":"iou-sqp-140"}
+TRUTH {"kind":"state","pid":140,"fd":4,"sq_head":3,"sq_tail":3,"cq_head":3,"cq_tail":3}
+TRUTH {"kind":"sqe","pid":141,"fd":3,"slot":0,"opcode":4,"flags":1,"sqe_fd":0,"len":64,"user_data":12289,"personality":1,"buf_index":0}
+TRUTH {"kind":"cqe","pid":141,"fd":3,"index":0,"user_data":12289,"res":24,"flags":0}
+TRUTH {"kind":"closed","pid":141,"fds":[4,5],"uid_now":1000}
+TRUTH {"kind":"state","pid":141,"fd":3,"sq_head":1,"sq_tail":1,"cq_head":0,"cq_tail":1}
+TRUTH {"kind":"state","pid":139,"fd":3,"sq_head":5,"sq_tail":5,"cq_head":3,"cq_tail":5}
+PID   COMMAND          COMMAND
+    1 init             {init} /bin/sh /init
+    2 kthreadd         [kthreadd]
+    3 pool_workqueue_  [pool_workqueue_]
+    4 kworker/R-kvfre  [kworker/R-kvfre]
+    5 kworker/R-rcu_g  [kworker/R-rcu_g]
+    6 kworker/R-sync_  [kworker/R-sync_]
+    7 kworker/R-slub_  [kworker/R-slub_]
+    8 kworker/R-netns  [kworker/R-netns]
+    9 kworker/0:0-eve  [kworker/0:0-eve]
+   10 kworker/0:1-pm   [kworker/0:1-pm]
+   11 kworker/0:0H-ev  [kworker/0:0H-ev]
+   12 kworker/u4:0-ev  [kworker/u4:0-ev]
+   13 kworker/R-mm_pe  [kworker/R-mm_pe]
+   14 rcu_tasks_kthre  [rcu_tasks_kthre]
+   15 rcu_tasks_rude_  [rcu_tasks_rude_]
+   16 rcu_tasks_trace  [rcu_tasks_trace]
+   17 ksoftirqd/0      [ksoftirqd/0]
+   18 rcu_preempt      [rcu_preempt]
+   19 rcu_exp_par_gp_  [rcu_exp_par_gp_]
+   20 rcu_exp_gp_kthr  [rcu_exp_gp_kthr]
+   21 migration/0      [migration/0]
+   22 idle_inject/0    [idle_inject/0]
+   23 cpuhp/0          [cpuhp/0]
+   25 kdevtmpfs        [kdevtmpfs]
+   26 kworker/R-inet_  [kworker/R-inet_]
+   27 kauditd          [kauditd]
+   28 khungtaskd       [khungtaskd]
+   29 kworker/u4:1-ev  [kworker/u4:1-ev]
+   30 oom_reaper       [oom_reaper]
+   31 kworker/u4:2-ev  [kworker/u4:2-ev]
+   32 kworker/R-write  [kworker/R-write]
+   33 kcompactd0       [kcompactd0]
+   34 ksmd             [ksmd]
+   35 kworker/R-kinte  [kworker/R-kinte]
+   36 kworker/R-kbloc  [kworker/R-kbloc]
+   37 kworker/R-blkcg  [kworker/R-blkcg]
+   38 irq/9-acpi       [irq/9-acpi]
+   39 kworker/R-tpm_d  [kworker/R-tpm_d]
+   40 kworker/R-quota  [kworker/R-quota]
+   41 kworker/0:1H     [kworker/0:1H]
+   42 kswapd0          [kswapd0]
+   49 kworker/R-kthro  [kworker/R-kthro]
+   53 kworker/R-acpi_  [kworker/R-acpi_]
+   54 kworker/R-nvme-  [kworker/R-nvme-]
+   55 kworker/R-nvme-  [kworker/R-nvme-]
+   56 kworker/R-nvme-  [kworker/R-nvme-]
+   57 kworker/R-nvme-  [kworker/R-nvme-]
+   58 kworker/R-mld    [kworker/R-mld]
+   59 kworker/R-ipv6_  [kworker/R-ipv6_]
+   64 kworker/R-kstrp  [kworker/R-kstrp]
+   66 kworker/u5:0     [kworker/u5:0]
+  100 kworker/u4:3-ev  [kworker/u4:3-ev]
+  137 uring_demo       /usr/local/bin/uring_demo listen
+  139 uring_demo       /usr/local/bin/uring_demo io
+  140 uring_demo       /usr/local/bin/uring_demo sqpoll
+  141 uring_demo       /usr/local/bin/uring_demo reg
+  146 uring_demo       /usr/local/bin/uring_demo listen
+  147 uring_demo       /usr/local/bin/uring_demo listen
+  149 ps               ps -o pid,comm,args
+GUEST_READY_FOR_DUMP

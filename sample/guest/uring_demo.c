@@ -97,6 +97,16 @@ static void ring_state(struct ring *r) {
            getpid(), r->fd, *r->sq_head, *r->sq_tail, *r->cq_head, *r->cq_tail);
 }
 
+// The kernel's own view of the ring (io_uring/fdinfo.c), a second ground truth not written by us.
+static void kernel_fdinfo(struct ring *r) {
+    char p[64], line[512];
+    snprintf(p, sizeof(p), "/proc/self/fdinfo/%d", r->fd);
+    FILE *f = fopen(p, "r");
+    if (!f) return;
+    while (fgets(line, sizeof(line), f)) printf("FDINFO %d %d %s", getpid(), r->fd, line);
+    fclose(f);
+}
+
 static void consume(struct ring *r, unsigned n) {
     __atomic_store_n(r->cq_head, *r->cq_head + n, __ATOMIC_RELEASE);
 }
@@ -171,6 +181,7 @@ static int mode_io(void) {
     printf("TRUTH {\"kind\":\"files\",\"pid\":%d,\"opened_fd\":%d,\"path\":\"%s\",\"socket_fd\":%d}\n",
            getpid(), ffd, path_io, sfd);
     ring_state(&r);
+    kernel_fdinfo(&r);
     park();
     return 0;
 }
@@ -218,6 +229,7 @@ static int mode_sqpoll(void) {
     printf("TRUTH {\"kind\":\"files\",\"pid\":%d,\"opened_fd\":%d,\"path\":\"/data/sqpoll.log\"}\n", getpid(), lfd);
     sqpoll_tid();
     ring_state(&r);
+    kernel_fdinfo(&r);
     park();
     return 0;
 }
@@ -258,6 +270,7 @@ static int mode_reg(void) {
     submit_wait(&r, s, slot);
     printf("TRUTH {\"kind\":\"closed\",\"pid\":%d,\"fds\":[%d,%d],\"uid_now\":%d}\n", getpid(), afd, sfd, getuid());
     ring_state(&r);
+    kernel_fdinfo(&r);
     park();
     return 0;
 }

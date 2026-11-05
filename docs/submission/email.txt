@@ -1,0 +1,35 @@
+To: contest@volatilityfoundation.org
+Subject: Volatility Plugin Contest 2026 submission: io_uring plugins for Volatility 3 (vol3-io-uring)
+
+Hello,
+
+I am submitting vol3-io-uring to the 2026 Volatility Plugin Contest.
+
+io_uring lets a Linux process open files, read, write, connect and send without the per-operation
+system calls that runtime security tools monitor (ARMO's "Curing" rootkit, April 2025, was not
+detected by Falco or Defender for Endpoint for this reason). The kernel keeps every ring in
+memory, and these four plugins show it to the analyst:
+
+- linux.io_uring.IoUring: every ring with setup flags, queue state, SQPOLL thread and registrations
+- linux.io_uring.Sqes: submission entries still in ring memory (opcode, fd and target, path or
+  destination address, user_data), pending and already consumed
+- linux.io_uring.Cqes: completions with decoded results, matched to their submissions
+- linux.io_uring.Registered: registered files (including ones whose fd was closed), buffers and
+  personalities (flagged when they differ from the process credentials)
+
+Code: https://github.com/DesignMaster-Solutions/vol3-io-uring (tag v0.1.0)
+Memory samples and ISFs (Debian 6.1 and 6.12, with sha256): https://github.com/DesignMaster-Solutions/vol3-io-uring/releases/tag/v0.1.0
+How to use: README.md and docs/usage.md (real output on both samples)
+Write-up: docs/writeup.md
+
+The samples are reproducible (sample/build_sample.sh, Docker + QEMU, benign workload that prints
+its own ground truth), and the pytest suite checks every plugin row against that truth on both
+kernels; a mutation script shows the tests fail when the plugin reads a wrong offset or flag.
+The plugin needs only Volatility 3 (tested with 2.28.2).
+
+The signed Individual Contributor License Agreement is attached.
+
+Thank you,
+Alan De Bortolo
+Design Master Solutions LLC
+info@designmastersolutions.com

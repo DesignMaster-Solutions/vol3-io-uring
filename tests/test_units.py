@@ -1,7 +1,9 @@
+import os
 import pathlib
 import sys
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "plugins" / "linux"))
+_plugins = os.environ.get("PLUGINS", str(pathlib.Path(__file__).resolve().parent.parent / "plugins"))
+sys.path.insert(0, str(pathlib.Path(_plugins) / "linux"))  # PLUGINS lets the mutant runner swap the module
 import io_uring  # noqa: E402
 
 
@@ -22,3 +24,25 @@ def test_decode_sockaddr():
 
 def test_sqe_layout_is_uapi():
     assert io_uring.SQE_FMT.size == 56 and io_uring.CQE_FMT.size == 16
+
+
+class _Node:
+    def __init__(self, shift, slots):
+        self.shift, self.slots = shift, slots + [0] * (64 - len(slots))
+
+
+class _Ctx:
+    """Fake context: context.object() returns the xa_node stored at that address."""
+
+    def __init__(self, nodes):
+        self.nodes = nodes
+
+    def object(self, _type, layer_name, offset):
+        return self.nodes[offset]
+
+
+def test_xarray_two_level_indices():
+    # root (shift 6) -> slot 1 is an internal node (tag 2) whose slot 2 holds entry 0x5000: index 1*64 + 2
+    nodes = {0x1000: _Node(6, [0x7000, 0x2002]), 0x2000: _Node(0, [0, 0, 0x5000, 0x6000])}
+    items = list(io_uring.IoUring._xa_node(_Ctx(nodes), "t", "l", 0x1000, 0))
+    assert items == [(0, 0x7000), (66, 0x5000), (67, 0x6000)]

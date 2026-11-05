@@ -124,9 +124,20 @@ class IoUring(interfaces.plugins.PluginInterface):
             return int(th.pid), utility.array_to_string(th.comm)
         return int(sqd.task_pid), "(exited)"
 
+    @staticmethod
+    def legacy_rsrc(ctx) -> bool:
+        """Registered files/buffers layout of 5.x-6.12 (nr_user_files, file_table.files, user_bufs).
+        6.13 moved them to io_rsrc_node tables, not supported yet."""
+        ok = ctx.has_member("nr_user_files") and ctx.has_member("user_bufs")
+        if not ok:
+            vollog.warning("registered files/buffers: kernel layout newer than 6.12 is not supported yet")
+        return ok
+
     @classmethod
     def fixed_files(cls, context, ctx) -> List[Tuple[int, interfaces.objects.ObjectInterface]]:
         """Registered (fixed) files as (index, struct file). Kernel 6.1 layout: file_table.files[]."""
+        if not cls.legacy_rsrc(ctx):
+            return []
         vmlinux_table = ctx.vol.type_name.split(constants.BANG)[0]
         out = []
         files = ctx.file_table.files
@@ -142,16 +153,20 @@ class IoUring(interfaces.plugins.PluginInterface):
     @classmethod
     def fixed_buffers(cls, context, ctx) -> List[Tuple[int, int, int, int]]:
         """Registered buffers as (index, user address, length, nr_bvecs)."""
+        if not cls.legacy_rsrc(ctx):
+            return []
         out = []
         table = ctx.vol.type_name.split(constants.BANG)[0]
         for i in range(min(int(ctx.nr_user_bufs), 1 << 14)):
             ubp = context.object(table + constants.BANG + "pointer", layer_name=ctx.vol.layer_name,
                                  offset=ctx.user_bufs + i * 8,
                                  subtype=context.symbol_space.get_type(table + constants.BANG + "io_mapped_ubuf"))
-            if not ubp or ubp == ctx.dummy_ubuf:
+            if not ubp or (ctx.has_member("dummy_ubuf") and ubp == ctx.dummy_ubuf):  # 6.1: unset slot
                 continue
             ub = ubp.dereference()
-            out.append((i, int(ub.ubuf), int(ub.ubuf_end) - int(ub.ubuf), int(ub.nr_bvecs)))
+            # 6.1 stores ubuf_end, 6.10+ stores len
+            size = int(ub.len) if ub.has_member("len") else int(ub.ubuf_end) - int(ub.ubuf)
+            out.append((i, int(ub.ubuf), size, int(ub.nr_bvecs)))
         return out
 
     @classmethod
@@ -220,7 +235,7 @@ class IoUring(interfaces.plugins.PluginInterface):
                     sq_tid if sq_tid is not None else renderers.NotApplicableValue(),
                     sq_comm or renderers.NotApplicableValue(),
                     self.uid(creds.uid) if creds else renderers.NotApplicableValue(),
-                    int(ctx.nr_user_files), int(ctx.nr_user_bufs),
+                    len(self.fixed_files(self.context, ctx)), len(self.fixed_buffers(self.context, ctx)),
                     len(self.personalities(self.context, ctx)), bool(ctx.restricted),
                 )
             except exceptions.InvalidAddressException as e:

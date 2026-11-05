@@ -41,7 +41,8 @@ class Sample:
 
     def vol(self, plugin):
         if plugin not in self._cache:
-            cmd = [VOL, "-q", "-r", "json", "-p", PLUGINS, "-f", str(self.dump), "-s", str(WORK / "isf"),
+            (WORK / ".volcache").mkdir(exist_ok=True)  # private symbol cache: ~/.cache/volatility3 is shared
+            cmd = [VOL, "-q", "--cache-path", str(WORK / ".volcache"), "-r", "json", "-p", PLUGINS, "-f", str(self.dump), "-s", str(WORK / "isf"),
                    f"linux.io_uring.{plugin}"]
             out = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
             assert out.returncode == 0, out.stderr[-3000:]
