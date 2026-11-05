@@ -29,11 +29,22 @@ def truth(kver):
     return rows
 
 
+def fdinfo(kver):
+    """The kernel's /proc/<pid>/fdinfo/<ring fd> for each ring, as printed by the guest: {(pid, fd): [lines]}."""
+    out = {}
+    for line in (EXPECTED / f"serial-{kver}.log").read_text(errors="replace").splitlines():
+        if line.startswith("FDINFO "):
+            _, pid, fd, rest = line.split(" ", 3)
+            out.setdefault((int(pid), int(fd)), []).append(rest)
+    return out
+
+
 class Sample:
     def __init__(self, kver):
         self.kver = kver
         self.dump = WORK / f"io-uring-{kver}.elf"
         self.truth = truth(kver)
+        self.fdinfo = fdinfo(kver)
         self._cache = {}
 
     def of(self, kind):

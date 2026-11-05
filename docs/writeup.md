@@ -77,9 +77,14 @@ registered file paths, closed-fd notes, buffer addresses and sizes, personality 
 To show that the tests catch real reading errors, `tests/mutants/run_mutants.sh` applies one-line
 breaks to the plugin (SQE offset, SQE field order, CQE size and offset, pending logic, pointer tag
 mask, xarray index, SQPOLL thread id, CQ head, setup flag table, sockaddr decoding, the closed-file
-and personality notes) and requires the suite to fail on each. The result is in the README.
+and personality notes) and requires the suite to fail on each: 13 of 13 killed on 2026-11-05.
 
-Both samples pass: Debian 6.1 (bookworm) and Debian 6.12 (trixie), Volatility 3 2.28.2.
+A second, independent truth comes from the kernel itself: the guest copies
+`/proc/self/fdinfo/<ring fd>` (written by `io_uring/fdinfo.c`) to the serial console, and
+`tests/test_fdinfo.py` checks that the plugins read the same head/tail, SQPOLL thread id, pending
+CQEs, registered buffers (address/size), file names and personality uids from the memory image.
+
+Both samples pass (22 tests, 2026-11-05): Debian 6.1 (bookworm) and Debian 6.12 (trixie), Volatility 3 2.28.2.
 
 ## Limits
 
@@ -95,10 +100,14 @@ Both samples pass: Debian 6.1 (bookworm) and Debian 6.12 (trixie), Volatility 3 
 
 ## Why it should matter to the contest
 
-* Creativity: io_uring is the best-known way to act on a Linux host without the syscalls that
-  monitoring relies on; there was no memory-forensics view of it in Volatility 3 or community3.
+* Creativity: io_uring is a documented way (ARMO's Curing) to act on a Linux host without the
+  syscalls that monitoring relies on; there was no memory-forensics view of it in Volatility 3 or community3.
 * Usefulness: an analyst gets, from a memory image, which processes use io_uring, what they asked
   for (paths, destinations, opcodes), whether a SQPOLL thread acts for them, and access kept through
   registered files after the fd was closed or credentials kept after a privilege drop.
+* Effort: a reproducible sample pipeline (Docker + QEMU, two Debian LTS kernels, ground truth on
+  the serial console) and a mutation script, besides the plugins themselves.
+* Clarity of documentation: README, docs/usage.md with the real output of every plugin on both
+  samples, and this write-up.
 * Completeness: four plugins, two LTS kernels, a reproducible sample with ground truth, tests that
   are shown to fail on wrong reads, no dependency beyond Volatility 3.

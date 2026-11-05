@@ -3,7 +3,8 @@ Subject: Volatility Plugin Contest 2026 submission: io_uring plugins for Volatil
 
 Hello,
 
-I am submitting vol3-io-uring to the 2026 Volatility Plugin Contest.
+I am submitting vol3-io-uring to the 2026 Volatility Plugin Contest. Please evaluate the four
+plugins below as one entry.
 
 io_uring lets a Linux process open files, read, write, connect and send without the per-operation
 system calls that runtime security tools monitor (ARMO's "Curing" rootkit, April 2025, was not

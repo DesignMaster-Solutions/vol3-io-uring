@@ -32,11 +32,11 @@ All four take `--pid`. Output from the sample (6.1 kernel):
 ```
 $ vol -p plugins -f io-uring-6.1.0-54-cloud-amd64.elf -s isf linux.io_uring.Registered
 PID  Process     RingFD  Kind         Index  Address         Size  Detail                Note
-88   uring_demo  3       file         0      0x898ac2736d00  0     /data/registered.txt  not in fd table (closed)
-88   uring_demo  3       file         1      0x898ac2736f00  0     socket:[10212]        not in fd table (closed)
-88   uring_demo  3       buffer       0      0x410000        4096  1 bvecs
-88   uring_demo  3       buffer       1      0x40e000        8192  2 bvecs
-88   uring_demo  3       personality  1      0x898adf191f00  0     uid=0 euid=0 gid=0    process uid is 1000
+88   uring_demo  3       file         0      0x8cf442505700  0     /data/registered.txt  not in fd table (closed)
+88   uring_demo  3       file         1      0x8cf442505600  0     socket:[10212]        not in fd table (closed)
+88   uring_demo  3       buffer       0      0x411000        4096  1 bvecs
+88   uring_demo  3       buffer       1      0x40f000        8192  2 bvecs
+88   uring_demo  3       personality  1      0x8cf45ffc46c0  0     uid=0 euid=0 gid=0    process uid is 1000
 ```
 
 Full output of every plugin on both samples: [docs/usage.md](docs/usage.md). Design, validation and
@@ -57,8 +57,10 @@ It needs the usual Linux symbol table (ISF) for the kernel of the image.
 
 | Kernel | Sample | Result |
 |---|---|---|
-| Debian 6.1.0-54-cloud-amd64 (6.1.190, bookworm) | `io-uring-6.1.0-54-cloud-amd64.elf` | all 4 plugins match the guest ground truth (pytest) |
-| Debian 6.12.115+deb13.1-cloud-amd64 (trixie) | `io-uring-6.12.115+deb13.1-cloud-amd64.elf` | all 4 plugins match the guest ground truth (pytest) |
+| Debian 6.1.0-54-cloud-amd64 (6.1.190, bookworm) | `io-uring-6.1.0-54-cloud-amd64.elf` | all 4 plugins match the guest ground truth and the kernel fdinfo (pytest) |
+| Debian 6.12.115+deb13.1-cloud-amd64 (trixie) | `io-uring-6.12.115+deb13.1-cloud-amd64.elf` | all 4 plugins match the guest ground truth and the kernel fdinfo (pytest) |
+
+Last run: 22 tests passed on both samples and 13/13 mutants killed, 2026-11-05, Volatility 3 2.28.2.
 
 Kernel differences handled: `io_mapped_ubuf` stores `ubuf_end` on 6.1 and `len` on 6.10+;
 `dummy_ubuf` exists only on older kernels. SQE and CQE are parsed with their UAPI layout
@@ -81,7 +83,9 @@ runs four processes: a TCP listener on 127.0.0.1:4444, a ring that does OPENAT+R
 SOCKET+CONNECT+SEND to the listener (two completions left unread), an SQPOLL ring, and a ring
 with two registered files (fds closed afterwards), two registered buffers and a personality
 registered as root before the process drops to uid 1000. Each process prints its ground truth as
-`TRUTH {json}` lines on the serial console, kept in `sample/expected/`.
+`TRUTH {json}` lines on the serial console, and copies the kernel's own description of its ring
+(`/proc/self/fdinfo/<ring fd>`, written by `io_uring/fdinfo.c`) as `FDINFO` lines; both are kept in
+`sample/expected/`.
 
 ```
 sample/build_sample.sh                                                    # 6.1 (bookworm)
@@ -89,14 +93,21 @@ SUITE=trixie KVER=6.12.115+deb13.1-cloud-amd64 sample/build_sample.sh     # 6.12
 ```
 
 QEMU runs with `-cpu max,la57=off`: under TCG `-cpu max` enables 5-level paging, which
-Volatility 3 does not translate (`linux.pslist` then returns nothing).
+Volatility 3 2.28.2 does not translate (`linux.pslist` then returns nothing).
 
 Prebuilt samples and ISFs are in the
 [v0.1.0 release](https://github.com/DesignMaster-Solutions/vol3-io-uring/releases/tag/v0.1.0):
 
 | File | sha256 |
 |---|---|
-| SHA256_TABLE | |
+| `io-uring-6.1.0-54-cloud-amd64.elf.zst` (35.8 MB, 512 MB raw) | `251139ad1a4f613bd0d075d1208201841763f6f889c6bafcd810ff008c13b23d` |
+| `io-uring-6.12.115.deb13.1-cloud-amd64.elf.zst` (38.1 MB, 512 MB raw) | `c0661096f43a68aeb5c75f15edce8db53ca6c54b2b4b0cf503cc40421fda9b5d` |
+| `6.1.0-54-cloud-amd64.json.xz` (ISF) | `eac7405bd2483d2113134dbe13422ad981c5604dee74d33c8925ac53c8f1b3c2` |
+| `6.12.115.deb13.1-cloud-amd64.json.xz` (ISF) | `a0a2de67b04d39cbb9b3747b7b134a99f9cff4108ef23b6ef0387c70fc750abb` |
+
+Asset names use `.` where the kernel name has `+` (GitHub rewrites `+`). Uncompressed sha256 of the
+images: `sample/expected/*.sha256`. To run the tests on them: `zstd -d` each image into `sample/work/`
+as `io-uring-<kernel>.elf` (kernel name with `+`) and put the ISFs in `sample/work/isf/linux/`.
 
 ## Tests
 
@@ -107,7 +118,8 @@ tests/mutants/run_mutants.sh              # every mutant must be KILLED
 ```
 
 `tests/test_plugins.py` runs the real `vol` CLI on each sample and compares every row with the
-serial ground truth. `tests/mutants/run_mutants.sh` breaks the plugin one line at a time (SQE/CQE
+serial ground truth; `tests/test_fdinfo.py` compares queue positions, SQPOLL thread, pending CQEs,
+registered files, buffers and personalities with what the kernel itself printed in fdinfo. `tests/mutants/run_mutants.sh` breaks the plugin one line at a time (SQE/CQE
 offset, field order, CQE size, pending logic, pointer tag mask, xarray index, SQPOLL thread id,
 head, flag table, sockaddr decoding, closed-file and personality notes) and checks that the suite
 fails on each one.
@@ -115,4 +127,4 @@ fails on each one.
 ## Status
 
 Built for the 2026 Volatility Plugin Contest. Author: Alan De Bortolo, Design Master Solutions LLC.
-License: Volatility Software License 1.0 (same as Volatility 3).
+License: Volatility Software License 1.0, the license of Volatility 3 ([LICENSE.txt](LICENSE.txt)).
