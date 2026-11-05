@@ -98,3 +98,51 @@ PID  Process     RingFD  Kind         Index  Address         Size  Detail       
 143  uring_demo  3       buffer       1      0x40f000        8192  2 bvecs
 143  uring_demo  3       personality  1      0x8c58824c7600  0     uid=0 euid=0 gid=0    process uid is 1000
 ```
+
+## Kernel 7.2.11+deb13-cloud-amd64
+
+```
+$ vol -p plugins -f io-uring-7.2.11+deb13-cloud-amd64.elf -s isf linux.io_uring.IoUring
+PID  Process     FD  Context         SetupFlags  SQEntries  CQEntries  SQHead  SQTail  SQPending  CQHead  CQTail  CQPending  SQPollTID  SQPollThread  SQPollUID  RegFiles  RegBuffers  Personalities  Restricted
+102  uring_demo  3   0x8f044270d800  -           8          16         5       5       0          3       5       2          N/A        N/A           N/A        0         0           0              False
+103  uring_demo  4   0x8f044270c800  SQPOLL      4          8          3       3       0          3       3       0          106        iou-sqp-103   0          0         0           0              False
+104  uring_demo  3   0x8f0442708800  -           8          16         1       1       0          0       1       1          N/A        N/A           N/A        2         2           1              False
+```
+
+```
+$ vol -p plugins -f io-uring-7.2.11+deb13-cloud-amd64.elf -s isf linux.io_uring.Sqes
+PID  Process     RingFD  Slot  Status    Opcode      SQEFlags    FD    Target                         Addr      Len  Off  UserData  Personality  BufIndex  Detail
+102  uring_demo  3       0     consumed  OPENAT      -           -100  AT_FDCWD                       0x40d050  0    0    0x1001    0            0         path=/data/report.txt
+102  uring_demo  3       1     consumed  READ        -           4     /data/report.txt               0x412000  64   0    0x1002    0            0
+102  uring_demo  3       2     consumed  SOCKET      -           2     -                              0x0       0    1    0x1003    0            0         AF_INET SOCK_STREAM
+102  uring_demo  3       3     consumed  CONNECT     -           5     socket:[358]                   0x412040  0    16   0x1004    0            0         addr=127.0.0.1:4444
+102  uring_demo  3       4     consumed  SEND        -           5     socket:[358]                   0x40d030  20   0    0x1005    0            0
+103  uring_demo  4       0     consumed  NOP         -           0     -                              0x0       0    0    0x2001    0            0
+103  uring_demo  4       1     consumed  WRITE       -           3     /data/sqpoll.log               0x40d010  29   0    0x2002    0            0
+103  uring_demo  4       2     consumed  NOP         -           0     -                              0x0       0    0    0x2003    0            0
+104  uring_demo  3       0     consumed  READ_FIXED  FIXED_FILE  0     fixed[0] /data/registered.txt  0x411000  64   0    0x3001    1            0
+```
+
+```
+$ vol -p plugins -f io-uring-7.2.11+deb13-cloud-amd64.elf -s isf linux.io_uring.Cqes
+PID  Process     RingFD  Index  Status    UserData  Opcode      Res  Result  Flags
+102  uring_demo  3       0      consumed  0x1001    OPENAT      4    fd 4    0
+102  uring_demo  3       1      consumed  0x1002    READ        38   38      0
+102  uring_demo  3       2      consumed  0x1003    SOCKET      5    fd 5    0
+102  uring_demo  3       3      pending   0x1004    CONNECT     0    0       0
+102  uring_demo  3       4      pending   0x1005    SEND        20   20      0
+103  uring_demo  4       0      consumed  0x2001    NOP         0    0       0
+103  uring_demo  4       1      consumed  0x2002    WRITE       29   29      0
+103  uring_demo  4       2      consumed  0x2003    NOP         0    0       0
+104  uring_demo  3       0      pending   0x3001    READ_FIXED  24   24      0
+```
+
+```
+$ vol -p plugins -f io-uring-7.2.11+deb13-cloud-amd64.elf -s isf linux.io_uring.Registered
+PID  Process     RingFD  Kind         Index  Address         Size  Detail                Note
+104  uring_demo  3       file         0      0x8f0441f226c0  0     /data/registered.txt  not in fd table (closed)
+104  uring_demo  3       file         1      0x8f0441f22000  0     socket:[357]          not in fd table (closed)
+104  uring_demo  3       buffer       0      0x411000        4096  1 bvecs
+104  uring_demo  3       buffer       1      0x40f000        8192  2 bvecs
+104  uring_demo  3       personality  1      0x8f044137dc00  0     uid=0 euid=0 gid=0    process uid is 1000
+```

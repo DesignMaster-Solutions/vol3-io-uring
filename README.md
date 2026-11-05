@@ -39,7 +39,7 @@ PID  Process     RingFD  Kind         Index  Address         Size  Detail       
 88   uring_demo  3       personality  1      0x8cf45ffc46c0  0     uid=0 euid=0 gid=0    process uid is 1000
 ```
 
-Full output of every plugin on both samples: [docs/usage.md](docs/usage.md). Design, validation and
+Full output of every plugin on every sample: [docs/usage.md](docs/usage.md). Design, validation and
 limits: [docs/writeup.md](docs/writeup.md).
 
 ## Install and run
@@ -59,16 +59,17 @@ It needs the usual Linux symbol table (ISF) for the kernel of the image.
 |---|---|---|
 | Debian 6.1.0-54-cloud-amd64 (6.1.190, bookworm) | `io-uring-6.1.0-54-cloud-amd64.elf` | all 4 plugins match the guest ground truth and the kernel fdinfo (pytest) |
 | Debian 6.12.115+deb13.1-cloud-amd64 (trixie) | `io-uring-6.12.115+deb13.1-cloud-amd64.elf` | all 4 plugins match the guest ground truth and the kernel fdinfo (pytest) |
+| Debian 7.2.11+deb13-cloud-amd64 (trixie-backports) | `io-uring-7.2.11+deb13-cloud-amd64.elf` | all 4 plugins match the guest ground truth and the kernel fdinfo (pytest) |
 
-Last run: 22 tests passed on both samples and 13/13 mutants killed, 2026-11-05, Volatility 3 2.28.2.
+Last run: 31 tests passed on the three samples and 13/13 mutants killed, 2026-11-05, Volatility 3 2.28.2, 2026-11-05, Volatility 3 2.28.2.
 
-Kernel differences handled: `io_mapped_ubuf` stores `ubuf_end` on 6.1 and `len` on 6.10+;
-`dummy_ubuf` exists only on older kernels. SQE and CQE are parsed with their UAPI layout
+Kernel differences handled, by member presence: registered files and buffers live in
+`file_table.files[]`/`user_bufs[]` up to 6.12 and in `io_rsrc_node` tables (`file_table.data`,
+`buf_table`) from 6.13; `io_mapped_ubuf` stores `ubuf_end` on 6.1 and `len` on 6.10+; `dummy_ubuf`
+exists only on older kernels; the `restricted` bitfield became `restrictions.op_registered`/`reg_registered`. SQE and CQE are parsed with their UAPI layout
 (stable since 5.1), including the 128-byte SQE and 32-byte CQE modes.
 
-Not covered yet: the registered files/buffers layout introduced in 6.13 (`io_rsrc_node`
-tables); on those kernels `Registered` warns and shows nothing, the other plugins are expected
-to work but were not tested. Rings created with `IORING_SETUP_NO_MMAP` or `NO_SQARRAY` are handled
+Not covered yet: rings created with `IORING_SETUP_NO_MMAP` or `NO_SQARRAY` are handled
 in code but not in the sample. Provided buffer rings (`io_bl`), linked timeouts and the io-wq
 worker threads are not shown. `Target` resolves the fd against the fd table at dump time, which
 may differ from the fd table at submission time.
@@ -90,20 +91,24 @@ registered as root before the process drops to uid 1000. Each process prints its
 ```
 sample/build_sample.sh                                                    # 6.1 (bookworm)
 SUITE=trixie KVER=6.12.115+deb13.1-cloud-amd64 sample/build_sample.sh     # 6.12
+SUITE=trixie KVER=7.2.11+deb13-cloud-amd64 \
+  APT_SOURCE="deb http://deb.debian.org/debian trixie-backports main" sample/build_sample.sh  # 7.2
 ```
 
 QEMU runs with `-cpu max,la57=off`: under TCG `-cpu max` enables 5-level paging, which
 Volatility 3 2.28.2 does not translate (`linux.pslist` then returns nothing).
 
 Prebuilt samples and ISFs are in the
-[v0.1.0 release](https://github.com/DesignMaster-Solutions/vol3-io-uring/releases/tag/v0.1.0):
+[v0.2.0 release](https://github.com/DesignMaster-Solutions/vol3-io-uring/releases/tag/v0.2.0):
 
 | File | sha256 |
 |---|---|
 | `io-uring-6.1.0-54-cloud-amd64.elf.zst` (35.8 MB, 512 MB raw) | `251139ad1a4f613bd0d075d1208201841763f6f889c6bafcd810ff008c13b23d` |
 | `io-uring-6.12.115.deb13.1-cloud-amd64.elf.zst` (38.1 MB, 512 MB raw) | `c0661096f43a68aeb5c75f15edce8db53ca6c54b2b4b0cf503cc40421fda9b5d` |
+| `io-uring-7.2.11.deb13-cloud-amd64.elf.zst` (44.0 MB, 512 MB raw) | `a036bcbd593821d3fcdf6ea1905d0980d52e37c3b099351df3f4df0c283f6b0f` |
 | `6.1.0-54-cloud-amd64.json.xz` (ISF) | `eac7405bd2483d2113134dbe13422ad981c5604dee74d33c8925ac53c8f1b3c2` |
 | `6.12.115.deb13.1-cloud-amd64.json.xz` (ISF) | `a0a2de67b04d39cbb9b3747b7b134a99f9cff4108ef23b6ef0387c70fc750abb` |
+| `7.2.11.deb13-cloud-amd64.json.xz` (ISF) | `c5df4337632b15b78b07f7536239aad114ae3541647c0ab1ad8c2708b1b9a595` |
 
 Asset names use `.` where the kernel name has `+` (GitHub rewrites `+`). Uncompressed sha256 of the
 images: `sample/expected/*.sha256`. To run the tests on them: `zstd -d` each image into `sample/work/`

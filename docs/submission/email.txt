@@ -18,13 +18,13 @@ memory, and these four plugins show it to the analyst:
 - linux.io_uring.Registered: registered files (including ones whose fd was closed), buffers and
   personalities (flagged when they differ from the process credentials)
 
-Code: https://github.com/DesignMaster-Solutions/vol3-io-uring (tag v0.1.0)
-Memory samples and ISFs (Debian 6.1 and 6.12, with sha256): https://github.com/DesignMaster-Solutions/vol3-io-uring/releases/tag/v0.1.0
-How to use: README.md and docs/usage.md (real output on both samples)
+Code: https://github.com/DesignMaster-Solutions/vol3-io-uring (tag v0.2.0)
+Memory samples and ISFs (Debian 6.1, 6.12 and 7.2, with sha256): https://github.com/DesignMaster-Solutions/vol3-io-uring/releases/tag/v0.2.0
+How to use: README.md and docs/usage.md (real output on all three samples)
 Write-up: docs/writeup.md
 
 The samples are reproducible (sample/build_sample.sh, Docker + QEMU, benign workload that prints
-its own ground truth), and the pytest suite checks every plugin row against that truth on both
+its own ground truth), and the pytest suite checks every plugin row against that truth on all three
 kernels; a mutation script shows the tests fail when the plugin reads a wrong offset or flag.
 The plugin needs only Volatility 3 (tested with 2.28.2).
 

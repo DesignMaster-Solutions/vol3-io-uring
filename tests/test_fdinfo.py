@@ -49,7 +49,7 @@ def test_ring_state_matches_fdinfo(sample, rings):
 def test_pending_cqes_match_fdinfo(sample, rings):
     rows = sample.vol("Cqes")
     for (pid, fd), lines in rings.items():
-        kernel = [tuple(int(x) for x in re.match(r"(\d+): user_data:(\d+), res:(-?\d+), flag:(\d+)", ln).groups())
+        kernel = [tuple(int(x) for x in re.match(r"(\d+): user_data:(\d+), res:(-?\d+), flags?:(\d+)", ln).groups())
                   for ln in section(lines, "CQEs")]
         ours = [(r["Index"], r["UserData"], r["Res"], r["Flags"]) for r in rows
                 if r["PID"] == pid and r["RingFD"] == fd and r["Status"] == "pending"]
@@ -66,8 +66,11 @@ def test_registered_matches_fdinfo(sample, rings):
         names = [ln.split(": ", 1)[1] for ln in section(lines, "UserFiles")]
         files = [r["Detail"] for r in mine if r["Kind"] == "file"]
         assert len(files) == len(names)
-        for path, name in zip(files, names):  # fdinfo prints the dentry name, or the protocol for sockets
-            assert path.endswith("/" + name) or (name in ("TCP", "UDP", "UNIX") and path.startswith("socket:"))
+        for path, name in zip(files, names):  # 6.x prints the dentry name (protocol for sockets), 7.x the full path
+            assert path == name or path.endswith("/" + name) or (
+                name in ("TCP", "UDP", "UNIX") and path.startswith("socket:"))
+        if not any(ln.startswith("Personalities:") for ln in lines):
+            continue  # 7.x fdinfo no longer lists personalities
         pers = section(lines, "Personalities")
         ids = [int(x) for x in pers if x.isdigit()]
         uids = [int(x.split()[1]) for x in pers if x.startswith("Uid:")]

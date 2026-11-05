@@ -11,7 +11,7 @@ MUTANTS=(
   's/size = 32 if self.flags \& SETUP_CQE32 else 16/size = 32/'
   's/CQE_FMT.unpack_from(raw)/CQE_FMT.unpack_from(raw, 8)/'
   's/"pending" if idx in pending else "consumed"/"consumed" if idx in pending else "pending"/'
-  's/ptr \&= ~0x7/ptr \&= ~0x1/'
+  's/offset=v \& ~0x7)/offset=v \& ~0x1)/'
   's/index = base + (off << shift)/index = base + off/'
   's/return int(th.pid), utility.array_to_string(th.comm)/return int(th.tgid), utility.array_to_string(th.comm)/'
   's/"cq_head": int(rings.cq.head)/"cq_head": int(rings.cq.tail)/'

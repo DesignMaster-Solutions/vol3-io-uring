@@ -125,49 +125,63 @@ class IoUring(interfaces.plugins.PluginInterface):
         return int(sqd.task_pid), "(exited)"
 
     @staticmethod
-    def legacy_rsrc(ctx) -> bool:
-        """Registered files/buffers layout of 5.x-6.12 (nr_user_files, file_table.files, user_bufs).
-        6.13 moved them to io_rsrc_node tables, not supported yet."""
-        ok = ctx.has_member("nr_user_files") and ctx.has_member("user_bufs")
-        if not ok:
-            vollog.warning("registered files/buffers: kernel layout newer than 6.12 is not supported yet")
-        return ok
+    def _ptr_array(context, ctx, base: int, count: int) -> Iterator[Tuple[int, int]]:
+        """(index, value) for every non-null 8-byte slot of an in-kernel array."""
+        layer = context.layers[ctx.vol.layer_name]
+        for i in range(min(count, 1 << 16)):
+            try:
+                v = struct.unpack("<Q", layer.read(base + i * 8, 8))[0]
+            except exceptions.InvalidAddressException:
+                continue
+            if v:
+                yield i, v
+
+    @classmethod
+    def _rsrc_slots(cls, context, ctx, kind: str) -> Iterator[Tuple[int, int]]:
+        """(index, value) of registered files ('file': tagged struct file *) or buffers ('buf': io_mapped_ubuf *).
+        5.x-6.12: ctx->file_table.files[] (io_fixed_file) and ctx->user_bufs[].
+        6.13+: ctx->file_table.data / ctx->buf_table (io_rsrc_data), nodes[] of io_rsrc_node holding the pointer."""
+        table = ctx.vol.type_name.split(constants.BANG)[0]
+        if ctx.has_member("nr_user_files"):
+            if kind == "file":
+                yield from cls._ptr_array(context, ctx, int(ctx.file_table.files), int(ctx.nr_user_files))
+            else:
+                dummy = int(ctx.dummy_ubuf) if ctx.has_member("dummy_ubuf") else 0  # 6.1: unset slot marker
+                for i, v in cls._ptr_array(context, ctx, int(ctx.user_bufs), int(ctx.nr_user_bufs)):
+                    if v != dummy:
+                        yield i, v
+            return
+        data = ctx.file_table.data if kind == "file" else ctx.buf_table
+        member = "file_ptr" if kind == "file" else "buf"
+        for i, node in cls._ptr_array(context, ctx, int(data.nodes), int(data.nr)):
+            n = context.object(table + constants.BANG + "io_rsrc_node", layer_name=ctx.vol.layer_name, offset=node)
+            yield i, int(getattr(n, member))
 
     @classmethod
     def fixed_files(cls, context, ctx) -> List[Tuple[int, interfaces.objects.ObjectInterface]]:
-        """Registered (fixed) files as (index, struct file). Kernel 6.1 layout: file_table.files[]."""
-        if not cls.legacy_rsrc(ctx):
-            return []
-        vmlinux_table = ctx.vol.type_name.split(constants.BANG)[0]
-        out = []
-        files = ctx.file_table.files
-        for i in range(min(int(ctx.nr_user_files), 1 << 16)):
-            ptr = context.object(vmlinux_table + constants.BANG + "io_fixed_file",
-                                 layer_name=ctx.vol.layer_name, offset=files + i * 8).file_ptr
-            ptr &= ~0x7  # FFS_NOWAIT/FFS_ISREG tag bits
-            if ptr:
-                out.append((i, context.object(vmlinux_table + constants.BANG + "file",
-                                              layer_name=ctx.vol.layer_name, offset=ptr)))
-        return out
+        """Registered (fixed) files as (index, struct file)."""
+        table = ctx.vol.type_name.split(constants.BANG)[0]
+        return [(i, context.object(table + constants.BANG + "file", layer_name=ctx.vol.layer_name, offset=v & ~0x7))
+                for i, v in cls._rsrc_slots(context, ctx, "file") if v & ~0x7]  # FFS_* tag bits
 
     @classmethod
     def fixed_buffers(cls, context, ctx) -> List[Tuple[int, int, int, int]]:
         """Registered buffers as (index, user address, length, nr_bvecs)."""
-        if not cls.legacy_rsrc(ctx):
-            return []
-        out = []
         table = ctx.vol.type_name.split(constants.BANG)[0]
-        for i in range(min(int(ctx.nr_user_bufs), 1 << 14)):
-            ubp = context.object(table + constants.BANG + "pointer", layer_name=ctx.vol.layer_name,
-                                 offset=ctx.user_bufs + i * 8,
-                                 subtype=context.symbol_space.get_type(table + constants.BANG + "io_mapped_ubuf"))
-            if not ubp or (ctx.has_member("dummy_ubuf") and ubp == ctx.dummy_ubuf):  # 6.1: unset slot
-                continue
-            ub = ubp.dereference()
+        out = []
+        for i, v in cls._rsrc_slots(context, ctx, "buf"):
+            ub = context.object(table + constants.BANG + "io_mapped_ubuf", layer_name=ctx.vol.layer_name, offset=v)
             # 6.1 stores ubuf_end, 6.10+ stores len
             size = int(ub.len) if ub.has_member("len") else int(ub.ubuf_end) - int(ub.ubuf)
             out.append((i, int(ub.ubuf), size, int(ub.nr_bvecs)))
         return out
+
+    @staticmethod
+    def restricted(ctx) -> bool:
+        if ctx.has_member("restricted"):  # bitfield up to 6.x
+            return bool(ctx.restricted)
+        r = ctx.restrictions
+        return any(bool(getattr(r, m)) for m in ("registered", "op_registered", "reg_registered") if r.has_member(m))
 
     @classmethod
     def xarray_items(cls, context, xa, depth: int = 0) -> Iterator[Tuple[int, int]]:
@@ -236,7 +250,7 @@ class IoUring(interfaces.plugins.PluginInterface):
                     sq_comm or renderers.NotApplicableValue(),
                     self.uid(creds.uid) if creds else renderers.NotApplicableValue(),
                     len(self.fixed_files(self.context, ctx)), len(self.fixed_buffers(self.context, ctx)),
-                    len(self.personalities(self.context, ctx)), bool(ctx.restricted),
+                    len(self.personalities(self.context, ctx)), self.restricted(ctx),
                 )
             except exceptions.InvalidAddressException as e:
                 vollog.debug(f"ring at fd {fd} of pid {task.pid}: {e}")

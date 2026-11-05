@@ -7,15 +7,21 @@ MEM="${MEM:-512}"
 OUT="io-uring-$KVER.elf"
 
 if [ ! -f "vmlinux-$KVER" ]; then
+  # e.g. APT_SOURCE="deb http://deb.debian.org/debian trixie-backports main" for backported kernels
+  [ -n "${APT_SOURCE:-}" ] && echo "$APT_SOURCE" > /etc/apt/sources.list.d/extra.list
   apt-get update -qq
   mkdir -p debs && cd debs
   apt-get download "linux-image-$KVER:amd64" "linux-image-$KVER-dbg:amd64"
+  # Debian 7.x splits the kernel image (linux-binary-*) and System.map (linux-base-*) out of linux-image-*
+  apt-get download "linux-binary-$KVER:amd64" "linux-base-$KVER:amd64" 2>/dev/null || true
   cd ..
   rm -rf kpkg && mkdir kpkg
   for d in debs/*.deb; do dpkg-deb -x "$d" kpkg; done
-  cp "kpkg/boot/vmlinuz-$KVER" .
-  cp "kpkg/boot/System.map-$KVER" .
-  cp "kpkg/usr/lib/debug/boot/vmlinux-$KVER" .
+  # 6.x: /boot/<file>-$KVER; 7.x: /usr/lib/modules/$KVER/<file>
+  pick() { for p in "$@"; do [ -f "$p" ] && { echo "$p"; return; }; done; echo "missing: $*" >&2; exit 1; }
+  cp "$(pick "kpkg/boot/vmlinuz-$KVER" "kpkg/usr/lib/modules/$KVER/vmlinuz")" "vmlinuz-$KVER"
+  cp "$(pick "kpkg/boot/System.map-$KVER" "kpkg/usr/lib/modules/$KVER/System.map")" "System.map-$KVER"
+  cp "$(pick "kpkg/usr/lib/debug/boot/vmlinux-$KVER" "kpkg/usr/lib/debug/lib/modules/$KVER/vmlinux" "kpkg/usr/lib/debug/usr/lib/modules/$KVER/vmlinux")" "vmlinux-$KVER"
   dpkg-deb -f debs/linux-image-$KVER-dbg_*.deb Version > kernel.version
   rm -rf kpkg
 fi

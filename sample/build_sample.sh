@@ -13,7 +13,7 @@ docker export "$CID" > "$WORK/rootfs.tar"
 docker rm "$CID" >/dev/null
 
 docker build -q --build-arg SUITE="${SUITE:-bookworm}" -t "vol3-iouring-builder-${SUITE:-bookworm}" "$HERE/builder"
-docker run --rm -v "$WORK:/work" -e KVER -e MEM "vol3-iouring-builder-${SUITE:-bookworm}"
+docker run --rm -v "$WORK:/work" -e KVER -e MEM -e APT_SOURCE "vol3-iouring-builder-${SUITE:-bookworm}"
 
 K="${KVER:-6.1.0-54-cloud-amd64}"
 if [ ! -f "$WORK/isf/linux/$K.json.xz" ]; then

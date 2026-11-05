@@ -84,12 +84,10 @@ A second, independent truth comes from the kernel itself: the guest copies
 `tests/test_fdinfo.py` checks that the plugins read the same head/tail, SQPOLL thread id, pending
 CQEs, registered buffers (address/size), file names and personality uids from the memory image.
 
-Both samples pass (22 tests, 2026-11-05): Debian 6.1 (bookworm) and Debian 6.12 (trixie), Volatility 3 2.28.2.
+All three samples pass (31 tests, 2026-11-05, Volatility 3 2.28.2): Debian 6.1 (bookworm), 6.12 (trixie) and 7.2 (trixie-backports).
 
 ## Limits
 
-* Kernels 6.13 and later store registered files and buffers in `io_rsrc_node` tables; `Registered`
-  warns and shows nothing there. The other plugins were not tested on those kernels.
 * SQE slots are overwritten as the ring wraps: only the last `sq_entries` submissions remain.
   Kernels copy SQEs before async execution, so a consumed slot is history, not proof of completion;
   `Cqes` is the place to check results.
@@ -105,9 +103,9 @@ Both samples pass (22 tests, 2026-11-05): Debian 6.1 (bookworm) and Debian 6.12 
 * Usefulness: an analyst gets, from a memory image, which processes use io_uring, what they asked
   for (paths, destinations, opcodes), whether a SQPOLL thread acts for them, and access kept through
   registered files after the fd was closed or credentials kept after a privilege drop.
-* Effort: a reproducible sample pipeline (Docker + QEMU, two Debian LTS kernels, ground truth on
+* Effort: a reproducible sample pipeline (Docker + QEMU, three Debian kernels from 6.1 to 7.2, ground truth on
   the serial console) and a mutation script, besides the plugins themselves.
-* Clarity of documentation: README, docs/usage.md with the real output of every plugin on both
+* Clarity of documentation: README, docs/usage.md with the real output of every plugin on all three
   samples, and this write-up.
-* Completeness: four plugins, two LTS kernels, a reproducible sample with ground truth, tests that
+* Completeness: four plugins, three kernels (6.1 LTS, 6.12 LTS, 7.2) across the 6.13 registered-resource rewrite, a reproducible sample with ground truth, tests that
   are shown to fail on wrong reads, no dependency beyond Volatility 3.
