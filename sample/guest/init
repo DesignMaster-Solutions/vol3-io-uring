@@ -1,0 +1,19 @@
+#!/bin/sh
+# PID 1 of the sample guest: start the benign io_uring workload, then report readiness.
+mount -t proc proc /proc
+mount -t sysfs sys /sys
+mount -t devtmpfs dev /dev 2>/dev/null
+ip link set lo up
+echo "GUEST_BOOTED $(uname -r)" > /dev/console
+mkdir -p /data
+echo "quarterly report: nothing to see here" > /data/report.txt
+echo "registered file content" > /data/registered.txt
+/usr/local/bin/uring_demo listen > /dev/console 2>&1 &
+sleep 1
+/usr/local/bin/uring_demo io > /dev/console 2>&1 &
+/usr/local/bin/uring_demo sqpoll > /dev/console 2>&1 &
+/usr/local/bin/uring_demo reg > /dev/console 2>&1 &
+sleep 8
+ps -o pid,comm,args > /dev/console
+echo "GUEST_READY_FOR_DUMP" > /dev/console
+while true; do sleep 3600; done
