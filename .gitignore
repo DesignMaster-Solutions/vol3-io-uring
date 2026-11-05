@@ -1,0 +1,10 @@
+sample/work/
+*.elf
+*.elf.zst
+*.elf.xz
+*.lime
+*.raw
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
