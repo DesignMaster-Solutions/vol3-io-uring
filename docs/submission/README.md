@@ -8,7 +8,7 @@ earlier submissions are preferred when entries are similar).
 
 ## Checklist before sending
 
-- [ ] ICLA signed and attached (requested from the Volatility Foundation)
+- [ ] ICLA signed and attached (received from the Volatility Foundation on 2026-11-05; it grants the Foundation dual shared ownership of the contributed code, read it before signing; `email.txt` carries the "Donated under ..." marking it asks for)
 - [ ] `git pull` and `python -m pytest tests` green on all three samples (and `tests/mutants/run_mutants.sh` all KILLED)
 - [ ] Release v0.2.0 assets downloadable and sha256 equal to the README table
 - [ ] Send `email.txt` to contest@volatilityfoundation.org (the info@ account in Spark adds its own signature: send with `--no-signature` or drop the closing lines of the txt)

@@ -29,6 +29,7 @@ kernels; a mutation script shows the tests fail when the plugin reads a wrong of
 The plugin needs only Volatility 3 (tested with 2.28.2).
 
 The signed Individual Contributor License Agreement is attached.
+Donated under Volatility Foundation, Inc. Individual Contributor Licensing Agreement
 
 Thank you,
 Alan De Bortolo
