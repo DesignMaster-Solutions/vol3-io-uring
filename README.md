@@ -61,7 +61,7 @@ It needs the usual Linux symbol table (ISF) for the kernel of the image.
 | Debian 6.12.115+deb13.1-cloud-amd64 (trixie) | `io-uring-6.12.115+deb13.1-cloud-amd64.elf` | all 4 plugins match the guest ground truth and the kernel fdinfo (pytest) |
 | Debian 7.2.11+deb13-cloud-amd64 (trixie-backports) | `io-uring-7.2.11+deb13-cloud-amd64.elf` | all 4 plugins match the guest ground truth and the kernel fdinfo (pytest) |
 
-Last run: 31 tests passed on the three samples and 13/13 mutants killed, 2026-11-05, Volatility 3 2.28.2, 2026-11-05, Volatility 3 2.28.2.
+Last run: 31 tests passed on the three samples and 13/13 mutants killed, 2026-11-05, Volatility 3 2.28.2.
 
 Kernel differences handled, by member presence: registered files and buffers live in
 `file_table.files[]`/`user_bufs[]` up to 6.12 and in `io_rsrc_node` tables (`file_table.data`,
