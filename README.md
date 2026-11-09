@@ -116,7 +116,13 @@ KVER=5.10.0-32-cloud-amd64 \
 About the 5.10 line: the 5.10 sample in the v0.3.0 release reused the Debian 5.10.0-32 kernel
 packages that the vol3-keyring builder had already downloaded, and its ISF was generated with
 dwarf2json on the host, at the revision the builder pins, because the container ran out of memory
-on the debug kernel. That command line has not been re-run end to end from a clean checkout yet.
+on the debug kernel. On 2026-11-09 that command line was re-run end to end from a clean checkout
+(Docker Desktop on an arm64 Mac, 8 GB VM; under 3 minutes): the builder downloaded
+`linux-image-5.10.0-32-cloud-amd64` 5.10.223-1 and its `-dbg` package from bullseye, booted and
+dumped the guest, and dwarf2json 9f14607 finished inside the container. The ISF it produced is
+byte-identical to the released `5.10.0-32-cloud-amd64.json.xz` (sha256 below), and the 14 tests for
+5.10 pass on the new dump against its own serial log. The dump itself is not reproducible byte for
+byte (addresses and timing change per boot), so the released image stays the reference.
 
 QEMU runs with `-cpu max,la57=off`: under TCG `-cpu max` enables 5-level paging, which
 Volatility 3 2.28.2 does not translate (`linux.pslist` then returns nothing).
