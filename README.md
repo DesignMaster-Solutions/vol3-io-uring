@@ -113,6 +113,11 @@ KVER=5.10.0-32-cloud-amd64 \
   APT_SOURCE="deb [arch=amd64] http://deb.debian.org/debian bullseye main" sample/build_sample.sh  # 5.10
 ```
 
+About the 5.10 line: the 5.10 sample in the v0.3.0 release reused the Debian 5.10.0-32 kernel
+packages that the vol3-keyring builder had already downloaded, and its ISF was generated with
+dwarf2json on the host, at the revision the builder pins, because the container ran out of memory
+on the debug kernel. That command line has not been re-run end to end from a clean checkout yet.
+
 QEMU runs with `-cpu max,la57=off`: under TCG `-cpu max` enables 5-level paging, which
 Volatility 3 2.28.2 does not translate (`linux.pslist` then returns nothing).
 
