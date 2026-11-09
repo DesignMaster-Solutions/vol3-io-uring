@@ -1,0 +1,112 @@
+GUEST_BOOTED 5.10.0-32-cloud-amd64
+TRUTH {"kind":"listener","pid":75,"port":4444}
+TRUTH {"kind":"ring","pid":78,"fd":4,"flags":2,"sq_entries":4,"cq_entries":8}
+TRUTH {"kind":"ring","pid":77,"fd":3,"flags":0,"sq_entries":8,"cq_entries":16}
+TRUTH {"kind":"ring","pid":79,"fd":3,"flags":0,"sq_entries":8,"cq_entries":16}
+TRUTH {"kind":"sqe","pid":78,"fd":4,"slot":0,"opcode":0,"flags":0,"sqe_fd":0,"len":0,"user_data":8193,"personality":0,"buf_index":0}
+TRUTH {"kind":"cqe","pid":78,"fd":4,"index":0,"user_data":8193,"res":0,"flags":0}
+TRUTH {"kind":"sqe","pid":77,"fd":3,"slot":0,"opcode":18,"flags":0,"sqe_fd":-100,"len":0,"user_data":4097,"personality":0,"buf_index":0}
+TRUTH {"kind":"cqe","pid":77,"fd":3,"index":0,"user_data":4097,"res":4,"flags":0}
+TRUTH {"kind":"sqe","pid":77,"fd":3,"slot":1,"opcode":22,"flags":0,"sqe_fd":4,"len":64,"user_data":4098,"personality":0,"buf_index":0}
+TRUTH {"kind":"cqe","pid":77,"fd":3,"index":1,"user_data":4098,"res":38,"flags":0}
+TRUTH {"kind":"sqe","pid":78,"fd":4,"slot":1,"opcode":23,"flags":0,"sqe_fd":3,"len":29,"user_data":8194,"personality":0,"buf_index":0}
+TRUTH {"kind":"registered","pid":79,"fd":3,"files":["/data/registered.txt","socket"],"file_fds":[4,5],"bufs":[[4263936,4096],[4255744,8192]],"personality":1,"personality_uid":0}
+TRUTH {"kind":"sqe","pid":77,"fd":3,"slot":2,"opcode":45,"flags":0,"sqe_fd":2,"len":0,"user_data":4099,"personality":0,"buf_index":0}
+TRUTH {"kind":"cqe","pid":78,"fd":4,"index":1,"user_data":8194,"res":29,"flags":0}
+TRUTH {"kind":"cqe","pid":77,"fd":3,"index":2,"user_data":4099,"res":-22,"flags":0}
+TRUTH {"kind":"sqe","pid":78,"fd":4,"slot":2,"opcode":0,"flags":0,"sqe_fd":0,"len":0,"user_data":8195,"personality":0,"buf_index":0}
+TRUTH {"kind":"sqe","pid":79,"fd":3,"slot":0,"opcode":4,"flags":1,"sqe_fd":0,"len":64,"user_data":12289,"personality":1,"buf_index":0}
+TRUTH {"kind":"socket_fallback","pid":77,"socket_fd":5}
+TRUTH {"kind":"cqe","pid":78,"fd":4,"index":2,"user_data":8195,"res":0,"flags":0}
+TRUTH {"kind":"files","pid":78,"opened_fd":3,"path":"/data/sqpoll.log"}
+TRUTH {"kind":"cqe","pid":79,"fd":3,"index":0,"user_data":12289,"res":24,"flags":0}
+TRUTH {"kind":"closed","pid":79,"fds":[4,5],"uid_now":1000}
+TRUTH {"kind":"state","pid":79,"fd":3,"sq_head":1,"sq_tail":1,"cq_head":0,"cq_tail":1}
+TRUTH {"kind":"sqe","pid":77,"fd":3,"slot":3,"opcode":16,"flags":0,"sqe_fd":5,"len":0,"user_data":4100,"personality":0,"buf_index":0}
+TRUTH {"kind":"cqe","pid":77,"fd":3,"index":3,"user_data":4100,"res":0,"flags":0}
+TRUTH {"kind":"sqpoll","pid":78,"tid":81,"comm":"iou-sqp-78"}
+FDINFO 79 3 pos:	0
+FDINFO 79 3 flags:	02000002
+FDINFO 79 3 mnt_id:	13
+FDINFO 79 3 SqThread:	-1
+FDINFO 79 3 SqThreadCpu:	-1
+FDINFO 79 3 UserFiles:	2
+FDINFO 79 3     0: registered.txt
+TRUTH {"kind":"sqe","pid":77,"fd":3,"slot":4,"opcode":26,"flags":0,"sqe_fd":5,"len":20,"user_data":4101,"personality":0,"buf_index":0}
+TRUTH {"kind":"state","pid":78,"fd":4,"sq_head":3,"sq_tail":3,"cq_head":3,"cq_tail":3}
+FDINFO 78 4 pos:	0
+FDINFO 78 4 flags:	02000002
+FDINFO 78 4 mnt_id:	13
+FDINFO 78 4 SqThread:	-1
+FDINFO 79 3     1: TCP
+FDINFO 79 3 UserBufs:	2
+FDINFO 79 3     0: 0x411000/4096
+FDINFO 79 3     1: 0x40f000/8192
+FDINFO 79 3 Personalities:
+FDINFO 79 3     1
+FDINFO 79 3 	Uid:	0		0		0		0
+FDINFO 79 3 	Gid:	0		0		0		0
+FDINFO 79 3 	Groups:	
+TRUTH {"kind":"cqe","pid":77,"fd":3,"index":4,"user_data":4101,"res":20,"flags":0}
+TRUTH {"kind":"files","pid":77,"opened_fd":4,"path":"/data/report.txt","socket_fd":5}
+TRUTH {"kind":"state","pid":77,"fd":3,"sq_head":5,"sq_tail":5,"cq_head":3,"cq_tail":5}
+FDINFO 78 4 SqThreadCpu:	-1
+FDINFO 78 4 UserFiles:	0
+FDINFO 78 4 UserBufs:	0
+FDINFO 78 4 PollList:
+FDINFO 79 3 	CapEff:	000001ffffffffff
+FDINFO 79 3 PollList:
+FDINFO 77 3 pos:	0
+FDINFO 77 3 flags:	02000002
+FDINFO 77 3 mnt_id:	13
+FDINFO 77 3 SqThread:	-1
+FDINFO 77 3 SqThreadCpu:	-1
+FDINFO 77 3 UserFiles:	0
+FDINFO 77 3 UserBufs:	0
+FDINFO 77 3 PollList:
+PID   COMMAND          COMMAND
+    1 init             {init} /bin/sh /init
+    2 kthreadd         [kthreadd]
+    3 rcu_gp           [rcu_gp]
+    4 rcu_par_gp       [rcu_par_gp]
+    5 kworker/0:0-eve  [kworker/0:0-eve]
+    6 kworker/0:0H-ev  [kworker/0:0H-ev]
+    7 kworker/u2:0-ev  [kworker/u2:0-ev]
+    8 mm_percpu_wq     [mm_percpu_wq]
+    9 rcu_tasks_rude_  [rcu_tasks_rude_]
+   10 rcu_tasks_trace  [rcu_tasks_trace]
+   11 ksoftirqd/0      [ksoftirqd/0]
+   12 rcu_sched        [rcu_sched]
+   13 migration/0      [migration/0]
+   14 kworker/0:1-eve  [kworker/0:1-eve]
+   15 cpuhp/0          [cpuhp/0]
+   17 kdevtmpfs        [kdevtmpfs]
+   18 netns            [netns]
+   19 kauditd          [kauditd]
+   20 khungtaskd       [khungtaskd]
+   21 oom_reaper       [oom_reaper]
+   22 writeback        [writeback]
+   23 kcompactd0       [kcompactd0]
+   24 ksmd             [ksmd]
+   43 kintegrityd      [kintegrityd]
+   44 kblockd          [kblockd]
+   45 blkcg_punt_bio   [blkcg_punt_bio]
+   46 kworker/0:1H     [kworker/0:1H]
+   47 kswapd0          [kswapd0]
+   48 kthrotld         [kthrotld]
+   49 acpi_thermal_pm  [acpi_thermal_pm]
+   50 nvme-wq          [nvme-wq]
+   51 nvme-reset-wq    [nvme-reset-wq]
+   52 nvme-delete-wq   [nvme-delete-wq]
+   53 ipv6_addrconf    [ipv6_addrconf]
+   54 kworker/u2:1     [kworker/u2:1]
+   63 kstrp            [kstrp]
+   68 kworker/u3:0     [kworker/u3:0]
+   75 uring_demo       /usr/local/bin/uring_demo listen
+   77 uring_demo       /usr/local/bin/uring_demo io
+   78 uring_demo       /usr/local/bin/uring_demo sqpoll
+   79 uring_demo       /usr/local/bin/uring_demo reg
+   82 uring_demo       /usr/local/bin/uring_demo listen
+   86 uring_demo       /usr/local/bin/uring_demo listen
+   87 ps               ps -o pid,comm,args
+GUEST_READY_FOR_DUMP

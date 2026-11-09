@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include <errno.h>
 #include <linux/io_uring.h>
 #include <netinet/in.h>
 #include <stdint.h>
@@ -16,6 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <sys/prctl.h>
 #include <sys/socket.h>
 #include <sys/syscall.h>
 #include <sys/uio.h>
@@ -166,6 +168,10 @@ static int mode_io(void) {
     s = sqe_get(&r, &slot);
     s->opcode = IORING_OP_SOCKET; s->fd = AF_INET; s->off = SOCK_STREAM; s->user_data = 0x1003;
     int sfd = submit_wait(&r, s, slot);
+    if (sfd == -EINVAL) {  // IORING_OP_SOCKET is 5.19+; older kernels get the socket from socket(2)
+        sfd = socket(AF_INET, SOCK_STREAM, 0);
+        printf("TRUTH {\"kind\":\"socket_fallback\",\"pid\":%d,\"socket_fd\":%d}\n", getpid(), sfd);
+    }
 
     s = sqe_get(&r, &slot);
     s->opcode = IORING_OP_CONNECT; s->fd = sfd; s->addr = (uintptr_t)&addr; s->off = sizeof(addr);
@@ -262,6 +268,7 @@ static int mode_reg(void) {
     close(sfd);
     // Drop to uid/gid 1000: the personality keeps the root credentials it captured.
     if (setresgid(1000, 1000, 1000) || setresuid(1000, 1000, 1000)) die("setresuid");
+    prctl(PR_SET_DUMPABLE, 1);  // 5.10 makes /proc/self/fdinfo root-only after the uid change otherwise
 
     struct io_uring_sqe *s = sqe_get(&r, &slot);
     s->opcode = IORING_OP_READ_FIXED; s->fd = 0; s->flags = IOSQE_FIXED_FILE;

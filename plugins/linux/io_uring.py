@@ -29,6 +29,15 @@ SETUP_FLAGS = [
     "COOP_TASKRUN", "TASKRUN_FLAG", "SQE128", "CQE32", "SINGLE_ISSUER", "DEFER_TASKRUN",
     "NO_MMAP", "REGISTERED_FD_ONLY", "NO_SQARRAY", "HYBRID_IOPOLL",
 ]
+# enum io_uring_op up to 6.1 (include/uapi/linux/io_uring.h), for ISFs without the enum
+UAPI_OPS = [
+    "NOP", "READV", "WRITEV", "FSYNC", "READ_FIXED", "WRITE_FIXED", "POLL_ADD", "POLL_REMOVE", "SYNC_FILE_RANGE",
+    "SENDMSG", "RECVMSG", "TIMEOUT", "TIMEOUT_REMOVE", "ACCEPT", "ASYNC_CANCEL", "LINK_TIMEOUT", "CONNECT",
+    "FALLOCATE", "OPENAT", "CLOSE", "FILES_UPDATE", "STATX", "READ", "WRITE", "FADVISE", "MADVISE", "SEND", "RECV",
+    "OPENAT2", "EPOLL_CTL", "SPLICE", "PROVIDE_BUFFERS", "REMOVE_BUFFERS", "TEE", "SHUTDOWN", "RENAMEAT", "UNLINKAT",
+    "MKDIRAT", "SYMLINKAT", "LINKAT", "MSG_RING", "FSETXATTR", "SETXATTR", "FGETXATTR", "GETXATTR", "SOCKET",
+    "URING_CMD", "SEND_ZC", "SENDMSG_ZC",
+]
 SQE_FLAGS = ["FIXED_FILE", "IO_DRAIN", "IO_LINK", "IO_HARDLINK", "ASYNC", "BUFFER_SELECT", "CQE_SKIP_SUCCESS"]
 SETUP_SQE128, SETUP_CQE32, SETUP_NO_SQARRAY = 1 << 10, 1 << 11, 1 << 16
 SQE_FIXED_FILE = 1
@@ -226,11 +235,14 @@ class IoUring(interfaces.plugins.PluginInterface):
 
     @classmethod
     def opcode_names(cls, context, kernel_name: str) -> Dict[int, str]:
+        """IORING_OP_* names from the kernel's enum io_uring_op; kernels whose enum is anonymous (5.10) have none
+        in the ISF, and then the UAPI numbering, which is ABI and never reused, names them."""
+
         try:
             enum = context.modules[kernel_name].get_enumeration("io_uring_op")
             return {v: k.replace("IORING_OP_", "") for k, v in enum.choices.items() if k != "IORING_OP_LAST"}
         except exceptions.SymbolError:
-            return {}
+            return dict(enumerate(UAPI_OPS))
 
     # ---- plugin ----
 

@@ -1,4 +1,9 @@
 """Every plugin row is checked against the ground truth the guest printed on its serial console."""
+import json
+import os
+import sys
+
+from conftest import PLUGINS
 
 # Opcode numbers from include/uapi/linux/io_uring.h, an oracle independent from the ISF enum the plugin uses.
 UAPI_OPS = {0: "NOP", 4: "READ_FIXED", 16: "CONNECT", 18: "OPENAT", 22: "READ", 23: "WRITE", 26: "SEND", 45: "SOCKET"}
@@ -99,3 +104,17 @@ def test_registered_files_buffers_personality(sample):
     assert pers["Detail"].startswith(f"uid={reg['personality_uid']} ")
     assert pers["Note"] == f"process uid is {closed['uid_now']}"
     assert {r["PID"] for r in rows} == {reg["pid"]}
+
+
+def test_uapi_opcode_table_agrees_with_the_kernel_enum(sample):
+    """The fallback names (for ISFs without enum io_uring_op, e.g. 5.10) must be the kernel's own where it has one."""
+    import lzma
+    from conftest import WORK
+    sys.path.insert(0, os.path.join(PLUGINS, "linux"))
+    import io_uring
+    enum = json.load(lzma.open(WORK / "isf" / "linux" / f"{sample.kver}.json.xz"))["enums"].get("io_uring_op")
+    if enum is None:
+        assert sample.vol("Sqes")[0]["Opcode"] in io_uring.UAPI_OPS  # names come from the table here
+        return
+    names = {v: k[len("IORING_OP_"):] for k, v in enum["constants"].items()}
+    assert [names.get(i) for i in range(len(io_uring.UAPI_OPS))] == io_uring.UAPI_OPS

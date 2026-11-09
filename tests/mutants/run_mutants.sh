@@ -1,6 +1,7 @@
 #!/bin/bash
 # Proves the tests catch reading errors: each mutant is a one-line break of plugins/linux/io_uring.py
 # (offset, mask, flag, status logic). The suite must FAIL on every mutant. Usage: tests/mutants/run_mutants.sh
+# PYTEST_ARGS="-k 5.10.0-32" limits the suite to one sample.
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 PY="${PY:-$ROOT/.venv/bin/python}"
@@ -19,12 +20,13 @@ MUTANTS=(
   's/if op == "CONNECT":/if op == "CONNECTX":/'
   's/note = f"also fd {fdnum}" if fdnum is not None else "not in fd table (closed)"/note = ""/'
   's/note = f"process uid is {task_uid}" if uid != task_uid else ""/note = ""/'
+  's/return dict(enumerate(UAPI_OPS))/return {}/'
 )
 fail=0
 for m in "${MUTANTS[@]}"; do
   D=$(mktemp -d); mkdir -p "$D/linux"; sed "$m" "$SRC" > "$D/linux/io_uring.py"
   if cmp -s "$SRC" "$D/linux/io_uring.py"; then echo "NOT APPLIED  $m"; fail=1; continue; fi
-  if PLUGINS="$D" "$PY" -m pytest -q -x "$ROOT/tests" >"$D/log" 2>&1; then
+  if PLUGINS="$D" "$PY" -m pytest -q -x ${PYTEST_ARGS:-} "$ROOT/tests" >"$D/log" 2>&1; then
     echo "SURVIVED     $m"; fail=1
   else
     echo "KILLED       $m  ($(grep -m1 -oE 'FAILED [^ ]+|[0-9]+ failed' "$D/log"))"

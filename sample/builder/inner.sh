@@ -16,11 +16,14 @@ if [ ! -f "vmlinux-$KVER" ]; then
   apt-get download "linux-binary-$KVER:amd64" "linux-base-$KVER:amd64" 2>/dev/null || true
   cd ..
   rm -rf kpkg && mkdir kpkg
-  for d in debs/*.deb; do dpkg-deb -x "$d" kpkg; done
+  for d in debs/*.deb; do  # dpkg-deb -x reports a false EOF on the 5.10 -dbg data.tar.xz; plain tar reads it
+    dpkg-deb -x "$d" kpkg || ar p "$d" data.tar.xz | tar -xJ -C kpkg
+  done
   # 6.x: /boot/<file>-$KVER; 7.x: /usr/lib/modules/$KVER/<file>
   pick() { for p in "$@"; do [ -f "$p" ] && { echo "$p"; return; }; done; echo "missing: $*" >&2; exit 1; }
   cp "$(pick "kpkg/boot/vmlinuz-$KVER" "kpkg/usr/lib/modules/$KVER/vmlinuz")" "vmlinuz-$KVER"
-  cp "$(pick "kpkg/boot/System.map-$KVER" "kpkg/usr/lib/modules/$KVER/System.map")" "System.map-$KVER"
+  # bullseye ships a one-line stub in /boot and the real System.map in the -dbg package
+  cp "$(pick "kpkg/usr/lib/debug/boot/System.map-$KVER" "kpkg/boot/System.map-$KVER" "kpkg/usr/lib/modules/$KVER/System.map")" "System.map-$KVER"
   cp "$(pick "kpkg/usr/lib/debug/boot/vmlinux-$KVER" "kpkg/usr/lib/debug/lib/modules/$KVER/vmlinux" "kpkg/usr/lib/debug/usr/lib/modules/$KVER/vmlinux")" "vmlinux-$KVER"
   dpkg-deb -f debs/linux-image-$KVER-dbg_*.deb Version > kernel.version
   rm -rf kpkg

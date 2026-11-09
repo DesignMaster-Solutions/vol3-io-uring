@@ -7,7 +7,7 @@ RUN git clone --depth 1 https://github.com/volatilityfoundation/dwarf2json /src/
 
 FROM debian:${SUITE}
 RUN dpkg --add-architecture amd64 && apt-get update \
- && apt-get install -y --no-install-recommends qemu-system-x86 cpio xz-utils zstd python3 ca-certificates \
+ && apt-get install -y --no-install-recommends qemu-system-x86 binutils cpio xz-utils zstd python3 ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 COPY --from=d2j /usr/local/bin/dwarf2json /usr/local/bin/dwarf2json
 COPY --from=d2j /usr/local/share/dwarf2json.rev /usr/local/share/dwarf2json.rev
