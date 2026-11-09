@@ -112,12 +112,17 @@ Prebuilt samples and ISFs are in the
 
 Asset names use `.` where the kernel name has `+` (GitHub rewrites `+`). Uncompressed sha256 of the
 images: `sample/expected/*.sha256`. To run the tests on them: `zstd -d` each image into `sample/work/`
-as `io-uring-<kernel>.elf` (kernel name with `+`) and put the ISFs in `sample/work/isf/linux/`.
+as `io-uring-<kernel>.elf` (kernel name with `+`) and put the ISFs in `sample/work/isf/linux/`;
+`sample/fetch.sh` does all of it and checks every sha256 (needs `curl` and `zstd`).
 
 ## Tests
 
+CI runs the first three lines on every push:
+[![ci](https://github.com/DesignMaster-Solutions/vol3-io-uring/actions/workflows/ci.yml/badge.svg)](https://github.com/DesignMaster-Solutions/vol3-io-uring/actions/workflows/ci.yml)
+
 ```
 python -m venv .venv && .venv/bin/pip install volatility3 pytest
+sample/fetch.sh                           # the three release samples and ISFs into sample/work/
 .venv/bin/python -m pytest tests          # skips a kernel whose sample is not in sample/work/
 tests/mutants/run_mutants.sh              # every mutant must be KILLED
 ```

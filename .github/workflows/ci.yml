@@ -1,0 +1,17 @@
+name: ci
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  release-samples:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m venv .venv && .venv/bin/pip install -q volatility3==2.28.2 pytest
+      - run: sample/fetch.sh
+      # without a sample its kernel is skipped; here a skip is a failure
+      - run: |
+          set -o pipefail
+          .venv/bin/python -m pytest tests -rs | tee out.txt
+          ! grep -q skipped out.txt
