@@ -26,8 +26,9 @@ Volatility 3 had no io_uring support, in core or in community3. This repository 
 | `linux.io_uring.Sqes` | Every non-empty submission slot still in ring memory, `pending` or already `consumed`: opcode by name (`OPENAT`, `READ`, `SOCKET`, `CONNECT`, `SEND`, `READ_FIXED`, ...), SQE flags, fd and what it points to now (path, socket, `fixed[n]` registered file), address, length, offset, `user_data`, personality, buffer index. For path opcodes it reads the path from process memory, for `CONNECT` the destination address, for `SOCKET` the family and type. It never reads data buffers. |
 | `linux.io_uring.Cqes` | Every non-empty completion slot, `pending` (not yet seen by the application) or `consumed`: `user_data`, result (fd, byte count or Linux errno name) and the opcode of the SQE with the same `user_data`. |
 | `linux.io_uring.Registered` | Registered files (path or socket, and whether the file is still in the fd table: a process can register a file and close the fd, keeping access invisible to `lsof`), registered buffers (user address and size) and personalities (registered credentials by id, flagged when they differ from the process uid). |
+| `linux.io_uring.Buffers` | From the ring to the content: for every `READ`, `WRITE`, `SEND`, `RECV`, `READ_FIXED` and `WRITE_FIXED` entry still in the ring, the bytes behind it, read from the process memory the SQE points to. Outgoing operations show what the process handed to the kernel; incoming ones show only the bytes the kernel filled (the result of the matching CQE), not the whole buffer. `--max-bytes N` sets the preview length, `--dump` writes each buffer to a file (`-o <dir>`). The other four plugins stay metadata-only. |
 
-All four take `--pid`. Output from the sample (6.1 kernel):
+All five take `--pid`. Output from the sample (6.1 kernel):
 
 ```
 $ vol -p plugins -f io-uring-6.1.0-54-cloud-amd64.elf -s isf linux.io_uring.Registered
@@ -38,6 +39,23 @@ PID  Process     RingFD  Kind         Index  Address         Size  Detail       
 88   uring_demo  3       buffer       1      0x40f000        8192  2 bvecs
 88   uring_demo  3       personality  1      0x8cf45ffc46c0  0     uid=0 euid=0 gid=0    process uid is 1000
 ```
+
+What the process sent, wrote and read through the ring, from the same image:
+
+```
+$ vol -p plugins -f io-uring-6.1.0-54-cloud-amd64.elf -s isf linux.io_uring.Buffers
+PID  Process     RingFD  Slot  Status    Opcode      Dir  Target                         Addr      Len  Res  Bytes  Data                                     Note  File
+86   uring_demo  3       1     consumed  READ        in   /data/report.txt               0x412000  64   38   38     quarterly report: nothing to see here\n        -
+86   uring_demo  3       4     consumed  SEND        out  socket:[10214]                 0x40d030  20   20   20     hello from io_uring\n                          -
+87   uring_demo  4       1     consumed  WRITE       out  /data/sqpoll.log               0x40d010  29   29   29     written by the SQPOLL thread\n                 -
+88   uring_demo  3       0     consumed  READ_FIXED  in   fixed[0] /data/registered.txt  0x411000  64   24   24     registered file content\n                      -
+```
+
+Read together with `Sqes` (the `CONNECT` of the same ring goes to `127.0.0.1:4444`), this is the whole
+story of pid 86 without a single `read`, `connect` or `send` system call in any trace: it opened
+`/data/report.txt`, read 38 bytes of it, connected to 127.0.0.1:4444 and sent 20 bytes, and these are the bytes.
+The buffer is read as it is at acquisition time: a program that reuses its buffer shows the latest content,
+not necessarily what that entry carried.
 
 Full output of every plugin on every sample: [docs/usage.md](docs/usage.md). Design, validation and
 limits: [docs/writeup.md](docs/writeup.md).
@@ -57,10 +75,10 @@ It needs the usual Linux symbol table (ISF) for the kernel of the image.
 
 | Kernel | Sample | Result |
 |---|---|---|
-| Debian 6.1.0-54-cloud-amd64 (6.1.190, bookworm) | `io-uring-6.1.0-54-cloud-amd64.elf` | all 4 plugins match the guest ground truth and the kernel fdinfo (pytest) |
-| Debian 6.12.115+deb13.1-cloud-amd64 (trixie) | `io-uring-6.12.115+deb13.1-cloud-amd64.elf` | all 4 plugins match the guest ground truth and the kernel fdinfo (pytest) |
-| Debian 7.2.11+deb13-cloud-amd64 (trixie-backports) | `io-uring-7.2.11+deb13-cloud-amd64.elf` | all 4 plugins match the guest ground truth and the kernel fdinfo (pytest) |
-| Debian 5.10.0-32-cloud-amd64 (5.10.223, bullseye) | `io-uring-5.10.0-32-cloud-amd64.elf` | all 4 plugins match the guest ground truth; fdinfo checked where 5.10 prints it (see below) |
+| Debian 6.1.0-54-cloud-amd64 (6.1.190, bookworm) | `io-uring-6.1.0-54-cloud-amd64.elf` | all 5 plugins match the guest ground truth and the kernel fdinfo (pytest) |
+| Debian 6.12.115+deb13.1-cloud-amd64 (trixie) | `io-uring-6.12.115+deb13.1-cloud-amd64.elf` | all 5 plugins match the guest ground truth and the kernel fdinfo (pytest) |
+| Debian 7.2.11+deb13-cloud-amd64 (trixie-backports) | `io-uring-7.2.11+deb13-cloud-amd64.elf` | all 5 plugins match the guest ground truth and the kernel fdinfo (pytest) |
+| Debian 5.10.0-32-cloud-amd64 (5.10.223, bullseye) | `io-uring-5.10.0-32-cloud-amd64.elf` | all 5 plugins match the guest ground truth; fdinfo checked where 5.10 prints it (see below) |
 
 The 5.10 result is for Debian's 5.10.y, which since 5.10.162 carries the io_uring code of 5.15 (structures close
 to 6.1). A 5.10 kernel without that backport (5.10.0 to 5.10.161, or a vendor tree that did not take it) was not
@@ -78,6 +96,8 @@ Last run: 44 tests passed on the four samples, 2026-11-09, Volatility 3 2.28.2; 
 three 6.x/7.x samples (2026-11-05); on 5.10, 13 of 14 killed (2026-11-09, with the new UAPI-table mutant): the
 xarray-index mutant survives there because the only xarray in that sample (the personalities, one entry at index 1)
 has a single node with shift 0, where the mutant computes the same index; the 6.x/7.x samples kill it.
+`Buffers` (2026-11-12): its tests pass on the four samples (content against the literals of the guest source,
+byte counts against the serial truth, `--dump` files byte for byte) and its 4 mutants are killed on 6.1.
 
 Kernel differences handled, by member presence: registered files and buffers live in
 `file_table.files[]`/`user_bufs[]` up to 6.12 and in `io_rsrc_node` tables (`file_table.data`,

@@ -38,8 +38,13 @@ pages. Before this project, Volatility 3 could not see any of it: `linux.lsof` s
   and personalities, flagged when the registered credentials differ from the process's current ones
   (registered as root, then dropped to an unprivileged uid).
 
-The plugins are read-only and show metadata: paths, socket addresses, sizes, credentials ids.
-They never dump the contents of read/write/send buffers.
+* `linux.io_uring.Buffers` (added 2026-11-12): the data behind `READ`/`WRITE`/`SEND`/`RECV`/`READ_FIXED`/
+  `WRITE_FIXED` entries, read from the user address in the SQE. For incoming operations only the bytes
+  the kernel filled are shown (the result of the CQE with the same `user_data`); `--dump` writes them to
+  files. This closes the path from "a ring exists" to "this is what left the machine".
+
+The plugins are read-only. The first four show metadata only (paths, socket addresses, sizes,
+credentials ids); buffer contents appear only when the analyst runs `Buffers`.
 
 ## Design
 
@@ -91,6 +96,10 @@ All three samples pass (31 tests, 2026-11-05, Volatility 3 2.28.2): Debian 6.1 (
 * SQE slots are overwritten as the ring wraps: only the last `sq_entries` submissions remain.
   Kernels copy SQEs before async execution, so a consumed slot is history, not proof of completion;
   `Cqes` is the place to check results.
+* `Buffers` reads the buffer as it is when the image was taken. A program that reuses one buffer for
+  many operations shows the latest content for all of them, and an SQE is matched to its result by
+  `user_data`, which the application chooses and may repeat. Vectored operations (`READV`, `WRITEV`,
+  `SENDMSG`, `RECVMSG`) and provided-buffer selection are not followed yet; each buffer is capped at 1 MiB.
 * Paths and addresses read from process memory can be paged out (`(paged out)`), and `Target`
   uses the fd table at dump time.
 * Not shown yet: provided buffer rings, io-wq worker threads, linked timeouts, `MSG_RING` targets,

@@ -118,3 +118,35 @@ def test_uapi_opcode_table_agrees_with_the_kernel_enum(sample):
         return
     names = {v: k[len("IORING_OP_"):] for k, v in enum["constants"].items()}
     assert [names.get(i) for i in range(len(io_uring.UAPI_OPS))] == io_uring.UAPI_OPS
+
+
+# What the guest sent, wrote and read: the literals of sample/guest/uring_demo.c and sample/guest/init.
+CONTENT = {26: ("out", b"hello from io_uring\n"), 23: ("out", b"written by the SQPOLL thread\n"),
+           22: ("in", b"quarterly report: nothing to see here\n"), 4: ("in", b"registered file content\n")}
+
+
+def test_buffers_show_what_was_sent_written_and_read(sample):
+    rows = sample.vol("Buffers")
+    sqes = [t for t in sample.of("sqe") if t["opcode"] in CONTENT]
+    assert len(sqes) == 4 and len(rows) == 4  # OPENAT/CONNECT/SOCKET/NOP carry no data buffer
+    res = {(t["pid"], t["user_data"]): t["res"] for t in sample.of("cqe")}
+    for t in sqes:
+        direction, want = CONTENT[t["opcode"]]
+        assert res[(t["pid"], t["user_data"])] == len(want)  # the byte count the guest got from the kernel
+        (r,) = rows_for(rows, PID=t["pid"], Slot=t["slot"])
+        assert (r["Opcode"], r["Dir"], r["Len"], r["Res"]) == (UAPI_OPS[t["opcode"]], direction, t["len"], len(want))
+        assert r["Bytes"] == len(want) and r["Data"] == want.decode().replace("\n", "\\n")
+        assert r["Note"] == "" and r["File"] == "-"
+
+
+def test_buffers_dump_writes_the_same_bytes(sample, tmp_path):
+    from conftest import VOL, WORK
+    import subprocess
+    cmd = [VOL, "-q", "--cache-path", str(WORK / ".volcache"), "-r", "json", "-o", str(tmp_path), "-p", PLUGINS,
+           "-f", str(sample.dump), "-s", str(WORK / "isf"), "linux.io_uring.Buffers", "--dump", "--max-bytes", "5"]
+    out = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+    assert out.returncode == 0, out.stderr[-3000:]
+    rows = json.loads(out.stdout)
+    got = {r["Opcode"]: (tmp_path / r["File"]).read_bytes() for r in rows}
+    assert got == {UAPI_OPS[op]: want for op, (_d, want) in CONTENT.items()}
+    assert {r["Data"] for r in rows} == {"hello...", "writt...", "quart...", "regis..."}

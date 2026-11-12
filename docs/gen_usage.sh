@@ -12,7 +12,7 @@ cd "$ROOT/sample/work"; mkdir -p .volcache
   for elf in io-uring-*.elf; do
     k="${elf#io-uring-}"; k="${k%.elf}"
     echo; echo "## Kernel $k"
-    for p in IoUring Sqes Cqes Registered; do
+    for p in IoUring Sqes Cqes Registered Buffers; do
       echo; echo '```'
       echo "\$ vol -p plugins -f $elf -s isf linux.io_uring.$p"
       "$VOL" -q --cache-path "$ROOT/sample/work/.volcache" -p "$ROOT/plugins" -f "$elf" -s isf "linux.io_uring.$p" 2>/dev/null | sed '/^Volatility 3 Framework/d;/^$/d' | column -t -s $'\t'

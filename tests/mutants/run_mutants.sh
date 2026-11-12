@@ -21,6 +21,10 @@ MUTANTS=(
   's/note = f"also fd {fdnum}" if fdnum is not None else "not in fd table (closed)"/note = ""/'
   's/note = f"process uid is {task_uid}" if uid != task_uid else ""/note = ""/'
   's/return dict(enumerate(UAPI_OPS))/return {}/'
+  's/return "in", min(res, length), ""/return "in", length, ""/'
+  's/fd, _off, addr, length, _opf, user_data = s\[:9\]/fd, addr, _off, length, _opf, user_data = s[:9]/'
+  's/results = {user_data: res for _i/results = {res: user_data for _i/'
+  's/f.write(data)/f.write(data[1:])/'
 )
 fail=0
 for m in "${MUTANTS[@]}"; do

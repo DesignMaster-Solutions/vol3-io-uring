@@ -489,3 +489,80 @@ class Registered(_RingPlugin):
              ("Address", format_hints.Hex), ("Size", int), ("Detail", str), ("Note", str)],
             self._generator(),
         )
+
+
+# ---- data buffers: from the ring to the content ----
+
+OUT_OPS = {"WRITE", "WRITE_FIXED", "SEND", "SEND_ZC"}  # the buffer holds what the process handed to the kernel
+IN_OPS = {"READ", "READ_FIXED", "RECV"}  # the kernel filled the buffer; the CQE result says how many bytes
+MAX_DUMP = 1 << 20
+
+
+def buffer_span(op: str, length: int, res: Optional[int]) -> Tuple[str, int, str]:
+    """(direction, bytes worth reading, note) for the data buffer of one SQE. `res` is the result of the
+    CQE with the same user_data, None when that completion is no longer in the ring."""
+    if op in OUT_OPS:
+        if res is not None and res < 0:
+            return "out", length, "failed: " + LINUX_ERRNO.get(-res, f"errno {-res}")
+        if res is not None and res < length:
+            return "out", length, f"short: kernel took {res} of {length}"
+        return "out", length, "" if res is not None else "no completion in ring"
+    if op in IN_OPS:
+        if res is None:
+            return "in", length, "no completion in ring: whole buffer shown"
+        if res <= 0:
+            return "in", 0, "nothing received" if res == 0 else "failed: " + LINUX_ERRNO.get(-res, f"errno {-res}")
+        return "in", min(res, length), ""
+    return "", 0, ""
+
+
+def printable(data: bytes) -> str:
+    """One-line preview: printable ASCII as is, the rest as C escapes."""
+    esc = {0x5C: "\\\\", 0x0A: "\\n", 0x0D: "\\r", 0x09: "\\t"}
+    return "".join(esc.get(b) or (chr(b) if 0x20 <= b < 0x7F else f"\\x{b:02x}") for b in data)
+
+
+class Buffers(_RingPlugin):
+    """Shows the data behind READ/WRITE/SEND/RECV entries: what was sent, written or received, read from the
+    process memory the SQE points to (as it is at acquisition time; a buffer may have been reused since)."""
+
+    @classmethod
+    def get_requirements(cls):
+        return super().get_requirements() + [
+            requirements.IntRequirement(name="max-bytes", description="Bytes of each buffer shown in the Data column",
+                                        default=64, optional=True),
+            requirements.BooleanRequirement(name="dump", description="Write each buffer (up to 1 MiB) to a file",
+                                            default=False, optional=True),
+        ]
+
+    def _generator(self):
+        shown = max(int(self.config.get("max-bytes", 64)), 0)
+        for r in self.rings():
+            results = {user_data: res for _i, _st, (user_data, res, _f) in r.cqes()}
+            for slot, status, s in r.sqes():
+                opcode, flags, _prio, fd, _off, addr, length, _opf, user_data = s[:9]
+                op = r.opname(opcode)
+                res = results.get(user_data)
+                direction, size, note = buffer_span(op, length, res)
+                if not direction:
+                    continue
+                data = r.user_read(addr, min(size, MAX_DUMP)) if size else b""
+                fname = "-"
+                if data is None:
+                    data, note = b"", "buffer not in memory (paged out or unmapped)"
+                elif data and self.config.get("dump"):
+                    fname = f"pid.{r.pid}.ring{r.fd}.slot{slot}.{op}.bin"
+                    with self.open(fname) as f:
+                        f.write(data)
+                yield 0, (r.pid, r.comm, r.fd, slot, status, op, direction, r.target(op, fd, flags),
+                          format_hints.Hex(addr), length,
+                          res if res is not None else renderers.NotApplicableValue(), len(data),
+                          printable(data[:shown]) + ("..." if len(data) > shown else ""), note, fname)
+
+    def run(self):
+        return renderers.TreeGrid(
+            [("PID", int), ("Process", str), ("RingFD", int), ("Slot", int), ("Status", str), ("Opcode", str),
+             ("Dir", str), ("Target", str), ("Addr", format_hints.Hex), ("Len", int), ("Res", int), ("Bytes", int),
+             ("Data", str), ("Note", str), ("File", str)],
+            self._generator(),
+        )
